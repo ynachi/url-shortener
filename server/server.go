@@ -23,7 +23,7 @@ func MakeServer(ipaddr string, port int) (Server, error) {
 	mux := http.NewServeMux()
 	ip := net.ParseIP(ipaddr)
 	if ip == nil {
-		return Server{ipaddr, port, nil}, fmt.Errorf("ip addres %s is invalid", ipaddr)
+		return Server{ipaddr, port, nil}, fmt.Errorf("ip address %s is invalid", ipaddr)
 	}
 	if port < 0 || port > portMax {
 		return Server{ipaddr, port, nil}, fmt.Errorf("port number %d is invalid", port)
