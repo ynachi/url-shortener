@@ -4,8 +4,16 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"os"
 	"strconv"
+
+	"golang.org/x/exp/slog"
 )
+
+const portMax = 65535
+const userPortMin = 49152
+
+var Logger = slog.New(slog.NewJSONHandler(os.Stdout))
 
 // Server is a struct representing an instance of the url shortening web application
 type Server struct {
@@ -14,8 +22,10 @@ type Server struct {
 	Mux    *http.ServeMux
 }
 
-const portMax = 65535
-const userPortMin = 49152
+// init logger
+func init() {
+	slog.SetDefault(Logger)
+}
 
 // MakeServer creates a new instance of a url shortening server. The port should be a valid port and not a port reserved for clients.
 // For reference, ports reserved to clients are 49152 - 65535 and valid port ranges are 0 - 65535.
@@ -23,7 +33,7 @@ func MakeServer(ipaddr string, port int) (Server, error) {
 	mux := http.NewServeMux()
 	ip := net.ParseIP(ipaddr)
 	if ip == nil {
-		return Server{ipaddr, port, nil}, fmt.Errorf("ip addres %s is invalid", ipaddr)
+		return Server{ipaddr, port, nil}, fmt.Errorf("ip address %s is invalid", ipaddr)
 	}
 	if port < 0 || port > portMax {
 		return Server{ipaddr, port, nil}, fmt.Errorf("port number %d is invalid", port)
