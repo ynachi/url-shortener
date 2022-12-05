@@ -1,9 +1,9 @@
 package server
 
 import (
-	"fmt"
 	"net/http"
 	"net/url"
+	"strings"
 )
 
 // Home define a home handler function which writes a byte slice containing
@@ -38,13 +38,20 @@ func CreateURL(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Localhost shortening is not allowed", http.StatusBadRequest)
 		return
 	}
+	// remove trailling / as we want goo.com and goo.com/ to encode the the same ID
+	longURL = strings.TrimSuffix(longURL, "/")
 	var requestData = requestURL{longURL}
 	encodedID, err := requestData.encodeLongURL()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	fmt.Fprintf(w, "URL that is being procecessed: %s", encodedID)
+	Logger.Info("persisting encoded URL", "long_url", longURL, "short_url_id", encodedID)
+	err = SaveURL(longURL, encodedID)
+	if err != nil {
+		http.Error(w, "Failed to save encoded", http.StatusInternalServerError)
+		return
+	}
 }
 
 // DeleteURL deletes a saved URL

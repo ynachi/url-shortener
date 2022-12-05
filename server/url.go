@@ -17,7 +17,6 @@ type requestURL struct {
 func (u *requestURL) encodeLongURL() (string, error) {
 	toSHA256 := toSHA256(u.URL)
 	toB64Numeric := fmt.Sprint(new(big.Int).SetBytes(toSHA256).Uint64())
-	fmt.Println(toB64Numeric)
 	finalString, err := toBase58([]byte(toB64Numeric))
 	if err != nil {
 		return "", err
@@ -28,7 +27,6 @@ func (u *requestURL) encodeLongURL() (string, error) {
 // toSHA256 converts a string to SHA256 bytes
 func toSHA256(data string) []byte {
 	hash := sha256.Sum256([]byte(data))
-	// fmt.Printf("%v\n", hash[:])
 	return hash[:]
 }
 
@@ -39,6 +37,5 @@ func toBase58(bytes []byte) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	fmt.Println(string(encoded))
 	return string(encoded), nil
 }
