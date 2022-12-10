@@ -1,6 +1,7 @@
 package server
 
 import (
+	"fmt"
 	"net/http"
 	"net/url"
 	"strings"
@@ -52,6 +53,8 @@ func CreateURL(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Failed to save encoded", http.StatusInternalServerError)
 		return
 	}
+	const msg = `"{message": Short url %s created and saved.}`
+	fmt.Fprintf(w, msg, encodedID)
 }
 
 // DeleteURL deletes a saved URL
