@@ -1,0 +1,7 @@
+traffic-generator
+*.yml
+*.jpg
+*.drawio
+.vscode
+LICENCE
+*.md
