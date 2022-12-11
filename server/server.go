@@ -22,66 +22,64 @@ const CacheDuration = 4 * time.Hour
 
 // Set package level variables. These are mostly shared service like contexts, logging and storage partameters
 var (
-	Logger          = slog.New(slog.NewJSONHandler(os.Stdout))
-	Ctx             = context.Background()
-	GCPProjectID    = os.Getenv("URL_SHORTNER_PROJECT_ID")
-	redisAddr       = fmt.Sprintf("%s:%s", os.Getenv("REDISHOST"), os.Getenv("REDISPORT"))
-	redisClient     *redis.Client
-	firestoreClient *firestore.Client
+	Logger = slog.New(slog.NewJSONHandler(os.Stdout))
 )
 
 // Server is a struct representing an instance of the url shortening web application
 type Server struct {
-	IPAddr string
-	Port   int
-	Mux    *http.ServeMux
-	Logger *slog.Logger
-	Ctx    context.Context
+	IPAddr          string
+	Port            int
+	Mux             *http.ServeMux
+	Ctx             context.Context
+	GCPProjectID    string
+	RedisAddr       string
+	RedisClient     *redis.Client
+	FirestoreClient *firestore.Client
 }
 
-// init logger and external services clients
+// init logger
 func init() {
-	// multiple assigment is not recognize in init().
-	// for instance, firestoreClient, err := NewFirestoreClient(ctx, GCPProjectID) will claim firestoreClient is a
-	// new variable despite being declared outside init()
-	var err error
 	slog.SetDefault(Logger)
-	Ctx, cancelCtx := context.WithCancel(Ctx)
-	defer cancelCtx()
-	firestoreClient, err = NewFirestoreClient(Ctx, GCPProjectID)
-	if err != nil {
-		cancelCtx()
-	}
-	redisClient, err = NewRedisClient(redisAddr)
-	if err != nil {
-		cancelCtx()
-	}
 }
 
 // MakeServer creates a new instance of a url shortening server. The port should be a valid port and not a port reserved for clients.
-// For reference, ports reserved to clients are 49152 - 65535 and valid port ranges are 0 - 65535.
-func MakeServer(ipaddr string, port int) (Server, error) {
-	mux := http.NewServeMux()
+// For reference, ports reserved to clients are 49152 - 65535 and valid port ranges are 0 - 65535. ipaddr and ports should be valid.
+func NewServer(ctx context.Context, ipaddr string, port int, gcpProjectID string, redisAddr string) (*Server, error) {
 	ip := net.ParseIP(ipaddr)
-	if ip == nil {
-		return Server{ipaddr, port, nil}, fmt.Errorf("ip address %s is invalid", ipaddr)
+	switch {
+	case ip == nil:
+		return nil, fmt.Errorf("ip address %s is invalid", ipaddr)
+	case port < 0 || port > portMax:
+		return nil, fmt.Errorf("port number %d is invalid", port)
+	case port >= userPortMin:
+		return nil, fmt.Errorf("user reserved port %d is not allowed", port)
 	}
-	if port < 0 || port > portMax {
-		return Server{ipaddr, port, nil}, fmt.Errorf("port number %d is invalid", port)
+	mux := http.NewServeMux()
+	firestoreClient, err := NewFirestoreClient(ctx, gcpProjectID)
+	if err != nil {
+		return nil, err
 	}
-	if port >= userPortMin {
-		return Server{ipaddr, port, nil}, fmt.Errorf("user reserved port %d is not allowed", port)
+	redisClient, err := NewRedisClient(redisAddr)
+	if err != nil {
+		return nil, err
 	}
-	return Server{ipaddr, port, mux}, nil
+	srv := &Server{
+		IPAddr:          ipaddr,
+		Port:            port,
+		Mux:             mux,
+		Ctx:             ctx,
+		GCPProjectID:    gcpProjectID,
+		RedisAddr:       redisAddr,
+		RedisClient:     redisClient,
+		FirestoreClient: firestoreClient,
+	}
+	return srv, nil
 }
 
 // Start starts the server
-func (srv Server) Start(ctx context.Context) error {
+func (srv Server) Start() error {
 	listenAddr := srv.IPAddr + ":" + strconv.Itoa(srv.Port)
-	// fail if the init() method returned an error
-	if err := ctx.Err(); err != nil {
-		Logger.Error("server initialization failed", err, "redis_server", redisAddr, "firestore_project_id", GCPProjectID)
-		return err
-	}
+	defer srv.FirestoreClient.Close()
+	defer srv.RedisClient.Close()
 	return http.ListenAndServe(listenAddr, srv.Mux)
 }

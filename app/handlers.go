@@ -1,4 +1,4 @@
-package server
+package main
 
 import (
 	"fmt"
@@ -6,6 +6,7 @@ import (
 	"net/url"
 	"strings"
 
+	"github.com/ynachi/url-shortner/server"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -50,8 +51,8 @@ func CreateURL(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	Logger.Info("persisting encoded URL", "long_url", longURL, "short_url_id", encodedID)
-	err = PersistURL(longURL, encodedID)
+	server.Logger.Info("persisting encoded URL", "long_url", longURL, "short_url_id", encodedID)
+	err = server.PersistURL(longURL, encodedID)
 	if err != nil {
 		http.Error(w, "Failed to save encoded", http.StatusInternalServerError)
 		return
@@ -85,18 +86,18 @@ func GetURL(w http.ResponseWriter, r *http.Request) {
 	// 	fmt.Fprintf(w, msg, shortID, longURL)
 	// 	return
 	// }
-	longURL, err := GetFromStorage(shortID)
+	longURL, err := server.GetFromStorage(shortID)
 	switch {
 	case err == nil:
 		const msg = `"{message": Long url for short url %s is %s.}`
 		fmt.Fprintf(w, msg, shortID, longURL)
 		return
 	case status.Code(err) == codes.NotFound:
-		Logger.Error("short url id not found", err, "short_url", shortID)
+		server.Logger.Error("short url id not found", err, "short_url", shortID)
 		http.Error(w, "Short URL not found", http.StatusNotFound)
 		return
 	case err != nil:
-		Logger.Error("short url retrieval failed", err, "short_url", shortID)
+		server.Logger.Error("short url retrieval failed", err, "short_url", shortID)
 		msg := fmt.Sprintf("%s long url retrieval failed", shortID)
 		http.Error(w, msg, http.StatusInternalServerError)
 		return
