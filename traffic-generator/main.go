@@ -9,7 +9,7 @@ import (
 	"sync"
 )
 
-// shorten issue a shortening request for the URL https://www.golang.org/{ID}.
+// shorten issues a shortening request for the URL https://www.golang.org/{ID}.
 // ID is a number used to simulate different URLs.
 func shorten(url string, ID int) {
 	url = fmt.Sprintf("%s/url/create?url=http://www.golang.com/%d", url, ID)
@@ -39,6 +39,8 @@ func worker(url string, ch <-chan int, wg *sync.WaitGroup) {
 	}
 }
 
+// main run the trafic generator.
+// arg 1: base url, arg 2: number of requests, arg 3: number of workers
 func main() {
 	var wg sync.WaitGroup
 	urlBase := os.Args[1]

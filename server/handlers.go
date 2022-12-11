@@ -5,6 +5,9 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 // Home define a home handler function which writes a byte slice containing
@@ -48,7 +51,7 @@ func CreateURL(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	Logger.Info("persisting encoded URL", "long_url", longURL, "short_url_id", encodedID)
-	err = SaveURL(longURL, encodedID)
+	err = PersistURL(longURL, encodedID)
 	if err != nil {
 		http.Error(w, "Failed to save encoded", http.StatusInternalServerError)
 		return
@@ -68,12 +71,40 @@ func UpdateURL(w http.ResponseWriter, r *http.Request) {
 }
 
 // ViewURL displays information about a shortened URL, like the long URL it points to
-func ViewURL(w http.ResponseWriter, r *http.Request) {
-
+func GetURL(w http.ResponseWriter, r *http.Request) {
+	// Only GET method is accepted to create ressources
+	if r.Method != http.MethodGet {
+		w.Header().Set("Allow", http.MethodGet)
+		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	shortID := r.URL.Query().Get("shortid")
+	// longURL, err := GetFromCache(shortID)
+	// if err == nil {
+	// 	const msg = `"{message": Long url for short url %s is %s.}`
+	// 	fmt.Fprintf(w, msg, shortID, longURL)
+	// 	return
+	// }
+	longURL, err := GetFromStorage(shortID)
+	switch {
+	case err == nil:
+		const msg = `"{message": Long url for short url %s is %s.}`
+		fmt.Fprintf(w, msg, shortID, longURL)
+		return
+	case status.Code(err) == codes.NotFound:
+		Logger.Error("short url id not found", err, "short_url", shortID)
+		http.Error(w, "Short URL not found", http.StatusNotFound)
+		return
+	case err != nil:
+		Logger.Error("short url retrieval failed", err, "short_url", shortID)
+		msg := fmt.Sprintf("%s long url retrieval failed", shortID)
+		http.Error(w, msg, http.StatusInternalServerError)
+		return
+	}
 }
 
 // ViewURLs displays all shortened URLs matching some criterias
-func ViewURLs(w http.ResponseWriter, r *http.Request) {
+func GetURLs(w http.ResponseWriter, r *http.Request) {
 
 }
 

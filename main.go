@@ -12,17 +12,17 @@ func main() {
 	}
 	server.Logger.Info("server instantiated", "port", srv.Port)
 
-	// registrering the handlers
+	// registering the handlers
 	srv.Mux.HandleFunc("/", server.Home)
 	srv.Mux.HandleFunc("/url/create", server.CreateURL)
 	srv.Mux.HandleFunc("/url/delete", server.DeleteURL)
 	srv.Mux.HandleFunc("/url/update", server.UpdateURL)
-	srv.Mux.HandleFunc("/url/view", server.ViewURL)
-	srv.Mux.HandleFunc("/urls/view", server.ViewURLs)
+	srv.Mux.HandleFunc("/url/get", server.GetURL)
+	srv.Mux.HandleFunc("/urls/get", server.GetURLs)
 	srv.Mux.HandleFunc("/url/redirect", server.Redirect)
 
 	server.Logger.Info("starting server", "port", srv.Port)
-	err = srv.Start()
+	err = srv.Start(server.Ctx)
 	if err != nil {
 		server.Logger.Error("server startup failed", err, "port", srv.Port)
 		return
