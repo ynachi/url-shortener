@@ -1,30 +1,46 @@
 package main
 
 import (
+	"context"
+	"errors"
+	"fmt"
+	"os"
+
 	"github.com/ynachi/url-shortner/server"
 )
 
 func main() {
-	srv, err := server.MakeServer("0.0.0.0", 8080)
+	ctx := context.Background()
+	gcpProjectID := os.Getenv("URLS_GCP_PROJECT_ID")
+	serverPort := os.Getenv("URLS_SERVER_PORT")
+	redisAddr := fmt.Sprintf("%s:%s", os.Getenv("REDISHOST"), os.Getenv("REDISPORT"))
+	srv, err := server.NewServer(ctx, "0.0.0.0", serverPort, gcpProjectID, redisAddr)
 	if err != nil {
-		server.Logger.Error("server creation failed", err, "name", "server")
-		return
+		switch {
+		case errors.Is(err, server.ErrRedisClientCreate):
+			server.Logger.Error("redis client error, caching disabled", err, "redis_host", redisAddr)
+		case errors.Is(err, server.ErrFirestoreClientCreate):
+			server.Logger.Error("firestore client error", err, "project_id", gcpProjectID)
+		default:
+			server.Logger.Error("server creation failed", err)
+			os.Exit(2)
+		}
 	}
 	server.Logger.Info("server instantiated", "port", srv.Port)
 
-	// registrering the handlers
-	srv.Mux.HandleFunc("/", server.Home)
-	srv.Mux.HandleFunc("/url/create", server.CreateURL)
-	srv.Mux.HandleFunc("/url/delete", server.DeleteURL)
-	srv.Mux.HandleFunc("/url/update", server.UpdateURL)
-	srv.Mux.HandleFunc("/url/view", server.ViewURL)
-	srv.Mux.HandleFunc("/urls/view", server.ViewURLs)
-	srv.Mux.HandleFunc("/url/redirect", server.Redirect)
+	// registering the handlers
+	srv.Mux.HandleFunc("/", srv.Home)
+	srv.Mux.HandleFunc("/url/create", srv.CreateURL)
+	srv.Mux.HandleFunc("/url/delete", srv.DeleteURL)
+	srv.Mux.HandleFunc("/url/update", srv.UpdateURL)
+	srv.Mux.HandleFunc("/url/get", srv.GetURL)
+	srv.Mux.HandleFunc("/urls/get", srv.GetURLs)
+	srv.Mux.HandleFunc("/url/redirect", srv.Redirect)
 
 	server.Logger.Info("starting server", "port", srv.Port)
 	err = srv.Start()
 	if err != nil {
 		server.Logger.Error("server startup failed", err, "port", srv.Port)
-		return
+		os.Exit(1)
 	}
 }

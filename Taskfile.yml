@@ -1,27 +1,29 @@
 version: "3"
 
 vars:
-  PROJECT_ID: ${URL_SHORTENER_PROJECT_ID}
-  IMAGE_TAG: ${URL_SHORTENER_IMAGE_TAG}
+  PROJECT_ID: ${URLS_GCP_PROJECT_ID}
+  IMAGE_TAG: ${URLS_SHORTENER_IMAGE_TAG}
 
 tasks:
     setup:
         desc: Setup your dev and build envirenment. For now, only set the development project ID.
         cmds:
-        - gcloud config set project ${URL_SHORTENER_PROJECT_ID}
+        - gcloud config set project ${URLS_GCP_PROJECT_ID}
 
     build:
         desc: Build and push to GCP registry
         cmds:
-        - gcloud builds submit --tag gcr.io/$URL_SHORTENER_PROJECT_ID/url-shortener:${URL_SHORTENER_IMAGE_TAG}
+        - gcloud builds submit --tag gcr.io/$URLS_GCP_PROJECT_ID/url-shortener:${URLS_SHORTENER_IMAGE_TAG}
 
     run: 
         desc: Run the app
         cmds:
-        - gcloud run deploy url-shortener \
-          --image gcr.io/$URL_SHORTENER_PROJECT_ID/url-shortener:${URL_SHORTENER_IMAGE_TAG} \
-          --platform managed \
-          --region us-central1 \
-          --allow-unauthenticated \
-          --max-instances=3 \
-          --min-instances=0
+          - | 
+            gcloud run deploy url-shortener \
+            --image gcr.io/$URLS_GCP_PROJECT_ID/url-shortener:${URLS_SHORTENER_IMAGE_TAG} \
+            --platform managed \
+            --region us-central1 \
+            --allow-unauthenticated \
+            --max-instances=3 \
+            --min-instances=0 \
+            --set-env-vars URLS_GCP_PROJECT_ID=${URLS_GCP_PROJECT_ID},URLS_SERVER_PORT=${URLS_SERVER_PORT}
