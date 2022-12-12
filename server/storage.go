@@ -34,7 +34,7 @@ func NewRedisClient(redisAddr string) (*redis.Client, error) {
 		Logger.Error("unable to connect to redis server", err, "redis_server", redisAddr)
 		return nil, ErrRedisClientCreate
 	}
-	Logger.Info("connexion to redis server was successfully", "redis_server", redisAddr)
+	Logger.Info("connexion to redis server was successfull", "redis_server", redisAddr)
 	// Close client when done with
 	// defer client.Close()
 	return client, nil

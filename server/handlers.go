@@ -25,7 +25,7 @@ func (srv *Server) Home(w http.ResponseWriter, r *http.Request) {
 
 // CreateURL creates a shortened URL from a long URL
 func (srv *Server) CreateURL(w http.ResponseWriter, r *http.Request) {
-	// Only POST method is accepted to create ressources
+	// Only POST method is accepted to create resources
 	if r.Method != http.MethodPost {
 		w.Header().Set("Allow", http.MethodPost)
 		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
@@ -42,7 +42,7 @@ func (srv *Server) CreateURL(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Localhost shortening is not allowed", http.StatusBadRequest)
 		return
 	}
-	// remove trailling / as we want goo.com and goo.com/ to encode the the same ID
+	// remove trailing / as we want goo.com and goo.com/ to encode the same ID
 	longURL = strings.TrimSuffix(longURL, "/")
 	var requestData = requestURL{URL: longURL}
 	encodedID, err := requestData.encodeLongURL()
@@ -65,14 +65,14 @@ func (srv *Server) DeleteURL(w http.ResponseWriter, r *http.Request) {
 
 }
 
-// UpdateURL updates the exoiration date of a given shortened URL
+// UpdateURL updates the expiration date of a given shortened URL
 func (srv *Server) UpdateURL(w http.ResponseWriter, r *http.Request) {
 
 }
 
-// ViewURL displays information about a shortened URL, like the long URL it points to
+// GetURL ViewURL displays information about a shortened URL, like the long URL it points to
 func (srv *Server) GetURL(w http.ResponseWriter, r *http.Request) {
-	// Only GET method is accepted to create ressources
+	// Only GET method is accepted to create resources
 	if r.Method != http.MethodGet {
 		w.Header().Set("Allow", http.MethodGet)
 		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
@@ -103,12 +103,12 @@ func (srv *Server) GetURL(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// ViewURLs displays all shortened URLs matching some criterias
+// GetURLs ViewURLs displays all shortened URLs matching some criteria
 func (srv *Server) GetURLs(w http.ResponseWriter, r *http.Request) {
 
 }
 
-// redirect redirect a long URL to a shortened URL
+// Redirect redirect redirect a long URL to a shortened URL
 func (srv *Server) Redirect(w http.ResponseWriter, r *http.Request) {
 
 }

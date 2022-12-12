@@ -31,7 +31,7 @@ func shorten(url string, ID int) {
 	fmt.Printf("client: response body: %s\n", resBody)
 }
 
-// worker instanciates a worker to issue encoding requests to the url shortening server
+// worker instantiates a worker to issue encoding requests to the url shortening server
 func worker(url string, ch <-chan int, wg *sync.WaitGroup) {
 	defer wg.Done()
 	for j := range ch {
@@ -39,7 +39,7 @@ func worker(url string, ch <-chan int, wg *sync.WaitGroup) {
 	}
 }
 
-// main run the trafic generator.
+// main run the traffic generator.
 // arg 1: base url, arg 2: number of requests, arg 3: number of workers
 func main() {
 	var wg sync.WaitGroup

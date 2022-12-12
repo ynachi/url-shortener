@@ -45,7 +45,7 @@ func init() {
 	slog.SetDefault(Logger)
 }
 
-// MakeServer creates a new instance of a url shortening server. The port should be a valid port and not a port reserved for clients.
+// NewServer MakeServer creates a new instance of an url shortening server. The port should be a valid port and not a port reserved for clients.
 // For reference, ports reserved to clients are 49152 - 65535 and valid port ranges are 0 - 65535. ipaddr and ports should be valid.
 func NewServer(ctx context.Context, ipaddr string, port string, gcpProjectID string, redisAddr string) (*Server, error) {
 	serverPort, err := strconv.Atoi(port)
@@ -86,13 +86,23 @@ func NewServer(ctx context.Context, ipaddr string, port string, gcpProjectID str
 }
 
 // Start starts the server
-func (srv Server) Start() error {
+func (srv *Server) Start() error {
 	listenAddr := srv.IPAddr + ":" + srv.Port
 	if srv.firestoreClient != nil {
-		defer srv.firestoreClient.Close()
+		defer func(firestoreClient *firestore.Client) {
+			err := firestoreClient.Close()
+			if err != nil {
+				Logger.Warn("failed to close firestore client", err)
+			}
+		}(srv.firestoreClient)
 	}
 	if srv.redisClient != nil {
-		defer srv.redisClient.Close()
+		defer func(redisClient *redis.Client) {
+			err := redisClient.Close()
+			if err != nil {
+				Logger.Warn("failed to close redis client", err)
+			}
+		}(srv.redisClient)
 	}
 	return http.ListenAndServe(listenAddr, srv.Mux)
 }
