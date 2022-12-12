@@ -13,7 +13,7 @@ func NewFirestoreClient(ctx context.Context, projectID string) (*firestore.Clien
 	client, err := firestore.NewClient(ctx, projectID)
 	if err != nil {
 		Logger.Error("unable to create firestore client", err, "project_id", projectID)
-		return nil, err
+		return nil, ErrFirestoreClientCreate
 	}
 	// Close client when done with
 	// defer client.Close()
@@ -32,9 +32,11 @@ func NewRedisClient(redisAddr string) (*redis.Client, error) {
 	_, err := client.Ping(client.Context()).Result()
 	if err != nil {
 		Logger.Error("unable to connect to redis server", err, "redis_server", redisAddr)
-		return nil, err
+		return nil, ErrRedisClientCreate
 	}
 	Logger.Info("connexion to redis server was successfully", "redis_server", redisAddr)
+	// Close client when done with
+	// defer client.Close()
 	return client, nil
 }
 

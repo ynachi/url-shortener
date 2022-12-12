@@ -1,4 +1,4 @@
-package main
+package server
 
 import (
 	"fmt"
@@ -6,13 +6,12 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/ynachi/url-shortner/server"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
 // Home define a home handler function which writes a byte slice containing
-func Home(w http.ResponseWriter, r *http.Request) {
+func (srv *Server) Home(w http.ResponseWriter, r *http.Request) {
 	// Check if the current request URL path exactly matches "/". If it doesn't, use
 	// the http.NotFound() function to send a 404 response to the client.
 	// Importantly, we then return from the handler. If we don't return the handler
@@ -25,7 +24,7 @@ func Home(w http.ResponseWriter, r *http.Request) {
 }
 
 // CreateURL creates a shortened URL from a long URL
-func CreateURL(w http.ResponseWriter, r *http.Request) {
+func (srv *Server) CreateURL(w http.ResponseWriter, r *http.Request) {
 	// Only POST method is accepted to create ressources
 	if r.Method != http.MethodPost {
 		w.Header().Set("Allow", http.MethodPost)
@@ -45,14 +44,14 @@ func CreateURL(w http.ResponseWriter, r *http.Request) {
 	}
 	// remove trailling / as we want goo.com and goo.com/ to encode the the same ID
 	longURL = strings.TrimSuffix(longURL, "/")
-	var requestData = requestURL{longURL}
+	var requestData = requestURL{URL: longURL}
 	encodedID, err := requestData.encodeLongURL()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	server.Logger.Info("persisting encoded URL", "long_url", longURL, "short_url_id", encodedID)
-	err = server.PersistURL(longURL, encodedID)
+	Logger.Info("persisting encoded URL", "long_url", longURL, "short_url_id", encodedID)
+	err = PersistURL(srv.ctx, longURL, encodedID, srv.firestoreClient)
 	if err != nil {
 		http.Error(w, "Failed to save encoded", http.StatusInternalServerError)
 		return
@@ -62,17 +61,17 @@ func CreateURL(w http.ResponseWriter, r *http.Request) {
 }
 
 // DeleteURL deletes a saved URL
-func DeleteURL(w http.ResponseWriter, r *http.Request) {
+func (srv *Server) DeleteURL(w http.ResponseWriter, r *http.Request) {
 
 }
 
 // UpdateURL updates the exoiration date of a given shortened URL
-func UpdateURL(w http.ResponseWriter, r *http.Request) {
+func (srv *Server) UpdateURL(w http.ResponseWriter, r *http.Request) {
 
 }
 
 // ViewURL displays information about a shortened URL, like the long URL it points to
-func GetURL(w http.ResponseWriter, r *http.Request) {
+func (srv *Server) GetURL(w http.ResponseWriter, r *http.Request) {
 	// Only GET method is accepted to create ressources
 	if r.Method != http.MethodGet {
 		w.Header().Set("Allow", http.MethodGet)
@@ -86,18 +85,18 @@ func GetURL(w http.ResponseWriter, r *http.Request) {
 	// 	fmt.Fprintf(w, msg, shortID, longURL)
 	// 	return
 	// }
-	longURL, err := server.GetFromStorage(shortID)
+	longURL, err := GetFromStorage(srv.ctx, shortID, srv.firestoreClient)
 	switch {
 	case err == nil:
 		const msg = `"{message": Long url for short url %s is %s.}`
 		fmt.Fprintf(w, msg, shortID, longURL)
 		return
 	case status.Code(err) == codes.NotFound:
-		server.Logger.Error("short url id not found", err, "short_url", shortID)
+		Logger.Error("short url id not found", err, "short_url", shortID)
 		http.Error(w, "Short URL not found", http.StatusNotFound)
 		return
 	case err != nil:
-		server.Logger.Error("short url retrieval failed", err, "short_url", shortID)
+		Logger.Error("short url retrieval failed", err, "short_url", shortID)
 		msg := fmt.Sprintf("%s long url retrieval failed", shortID)
 		http.Error(w, msg, http.StatusInternalServerError)
 		return
@@ -105,11 +104,11 @@ func GetURL(w http.ResponseWriter, r *http.Request) {
 }
 
 // ViewURLs displays all shortened URLs matching some criterias
-func GetURLs(w http.ResponseWriter, r *http.Request) {
+func (srv *Server) GetURLs(w http.ResponseWriter, r *http.Request) {
 
 }
 
 // redirect redirect a long URL to a shortened URL
-func Redirect(w http.ResponseWriter, r *http.Request) {
+func (srv *Server) Redirect(w http.ResponseWriter, r *http.Request) {
 
 }
