@@ -22,8 +22,9 @@ tasks:
             gcloud run deploy url-shortener \
             --image gcr.io/$URLS_GCP_PROJECT_ID/url-shortener:${URLS_SHORTENER_IMAGE_TAG} \
             --platform managed \
-            --region us-central1 \
+            --region northamerica-northeast1 \
             --allow-unauthenticated \
             --max-instances=3 \
             --min-instances=0 \
-            --set-env-vars URLS_GCP_PROJECT_ID=${URLS_GCP_PROJECT_ID},URLS_SERVER_PORT=${URLS_SERVER_PORT}
+            --vpc-connector ${SERVERLESS_CONN} \
+            --set-env-vars URLS_GCP_PROJECT_ID=${URLS_GCP_PROJECT_ID},URLS_SERVER_PORT=${URLS_SERVER_PORT},REDISHOST=${REDISHOST},REDISPORT=${REDISPORT}

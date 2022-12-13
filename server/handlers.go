@@ -79,17 +79,22 @@ func (srv *Server) GetURL(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	shortID := r.URL.Query().Get("shortid")
-	// longURL, err := GetFromCache(shortID)
-	// if err == nil {
-	// 	const msg = `"{message": Long url for short url %s is %s.}`
-	// 	fmt.Fprintf(w, msg, shortID, longURL)
-	// 	return
-	// }
-	longURL, err := GetFromStorage(srv.ctx, shortID, srv.firestoreClient)
+	longURL, err := GetFromCache(srv.ctx, shortID, srv.redisClient)
+	if err == nil {
+		const msg = `"{message": Long url for short url %s is %s.}`
+		fmt.Fprintf(w, msg, shortID, longURL)
+		return
+	}
+	longURL, err = GetFromStorage(srv.ctx, shortID, srv.firestoreClient)
 	switch {
 	case err == nil:
 		const msg = `"{message": Long url for short url %s is %s.}`
 		fmt.Fprintf(w, msg, shortID, longURL)
+		// save to cache
+		err = SaveToCache(srv.ctx, shortID, longURL, srv.redisClient)
+		if err != nil {
+			Logger.Error("failed to save cold item to cache", err, "redis_host", srv.redisAddr)
+		}
 		return
 	case status.Code(err) == codes.NotFound:
 		Logger.Error("short url id not found", err, "short_url", shortID)
