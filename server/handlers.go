@@ -10,12 +10,10 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-// Home define a home handler function which writes a byte slice containing
+// Home define a home handler function which respond to users hiting the home page
 func (srv *Server) Home(w http.ResponseWriter, r *http.Request) {
 	// Check if the current request URL path exactly matches "/". If it doesn't, use
 	// the http.NotFound() function to send a 404 response to the client.
-	// Importantly, we then return from the handler. If we don't return the handler
-	// would keep executing and also write the "Hello from SnippetBox" message.
 	if r.URL.Path != "/" {
 		http.NotFound(w, r)
 		return
