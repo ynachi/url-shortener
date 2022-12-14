@@ -83,7 +83,7 @@ func GetFromStorage(ctx context.Context, shortID string, firestoreClient *firest
 	return dataStr, nil
 }
 
-// SaveToCache saves long url matching the given ID from the caching servers
+// SaveToCache saves long url matching the given ID to the caching servers
 func SaveToCache(ctx context.Context, shortID string, longURL string, redisClient *redis.Client) error {
 	err := redisClient.Set(ctx, shortID, longURL, CacheDuration).Err()
 	if err != nil {

@@ -18,8 +18,9 @@ import (
 const portMax = 65535
 const userPortMin = 49152
 
-// CacheDuration Should be LRU like in real world. For now, we use time based expiration
-const CacheDuration = 4 * time.Hour
+// CacheDuration is the expiration time set on each cached object. We set it at 0 as we will be using LRU or LFU at the server side.
+// Could be a parameter passed to the server as environment variable.
+const CacheDuration = 0 * time.Hour
 
 // Set logger and sentinel errors
 var (
