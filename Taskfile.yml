@@ -6,7 +6,7 @@ vars:
 
 tasks:
     setup:
-        desc: Setup your dev and build envirenment. For now, only set the development project ID.
+        desc: Setup your dev and build environment. For now, only set the development project ID.
         cmds:
         - gcloud config set project ${URLS_GCP_PROJECT_ID}
 
