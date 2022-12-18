@@ -64,8 +64,8 @@ func NewServer(ctx context.Context, ipaddr string, port string, gcpProjectID str
 		return nil, fmt.Errorf("user reserved port %s is not allowed", port)
 	}
 	mux := http.NewServeMux()
-	firestoreClient, err1 := NewFirestoreClient(ctx, gcpProjectID)
-	redisClient, err2 := NewRedisClient(redisAddr)
+	firestoreClient, err1 := newFirestoreClient(ctx, gcpProjectID)
+	redisClient, err2 := newRedisClient(redisAddr)
 	srv := &Server{
 		IPAddr:          ipaddr,
 		Port:            port,

@@ -49,7 +49,7 @@ func (srv *Server) CreateURL(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	Logger.Info("persisting encoded URL", "long_url", longURL, "short_url_id", encodedID)
-	err = PersistURL(srv.ctx, longURL, encodedID, srv.firestoreClient)
+	err = persistURL(srv.ctx, longURL, encodedID, srv.firestoreClient)
 	if err != nil {
 		http.Error(w, "Failed to save encoded", http.StatusInternalServerError)
 		return
@@ -77,19 +77,19 @@ func (srv *Server) GetURL(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	shortID := r.URL.Query().Get("shortid")
-	longURL, err := GetFromCache(srv.ctx, shortID, srv.redisClient)
+	longURL, err := getFromCache(srv.ctx, shortID, srv.redisClient)
 	if err == nil {
 		const msg = `"{message": Long url for short url %s is %s.}`
 		fmt.Fprintf(w, msg, shortID, longURL)
 		return
 	}
-	longURL, err = GetFromStorage(srv.ctx, shortID, srv.firestoreClient)
+	longURL, err = getFromStorage(srv.ctx, shortID, srv.firestoreClient)
 	switch {
 	case err == nil:
 		const msg = `"{message": Long url for short url %s is %s.}`
 		fmt.Fprintf(w, msg, shortID, longURL)
 		// save to cache
-		err = SaveToCache(srv.ctx, shortID, longURL, srv.redisClient)
+		err = saveToCache(srv.ctx, shortID, longURL, srv.redisClient)
 		if err != nil {
 			Logger.Error("failed to save cold item to cache", err, "redis_host", srv.redisAddr)
 		}
