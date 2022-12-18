@@ -5,6 +5,8 @@ import (
 
 	"cloud.google.com/go/firestore"
 	"github.com/go-redis/redis/v8"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 // newFirestoreClient instantiates a new firestore client. This client should
@@ -83,7 +85,7 @@ func getFromStorage(ctx context.Context, shortID string, firestoreClient *firest
 	return dataStr, nil
 }
 
-// SaveToCache saves long url matching the given ID to the caching servers
+// saveToCache saves long url matching the given ID to the caching servers
 func saveToCache(ctx context.Context, shortID string, longURL string, redisClient *redis.Client) error {
 	err := redisClient.Set(ctx, shortID, longURL, CacheDuration).Err()
 	if err != nil {
@@ -91,4 +93,37 @@ func saveToCache(ctx context.Context, shortID string, longURL string, redisClien
 		return err
 	}
 	return nil
+}
+
+// decodeURL gets the long url matching a given short ID. It tries to fetch it
+// from caching servers, then form persistent storage. If the data was not in
+// cache, a copy of it is saved there. If it succeeds to decode the url but fail
+// to cache the data, it returns ErrCacheSave error. If the short ID is missing
+// from both cache and database, ErrStorageMiss is fired.
+func decodeURL(ctx context.Context, shortID string, redisClient *redis.Client, firestoreClient *firestore.Client) (string, error) {
+	longURL, err := getFromCache(ctx, shortID, redisClient)
+	if err == nil {
+		return longURL, nil
+	}
+
+	if err != redis.Nil {
+		return longURL, err
+	}
+	Logger.Info("cache missed, trying from persistent storage", "short_id", shortID)
+	longURL, err = getFromStorage(ctx, shortID, firestoreClient)
+	switch {
+	case err == nil:
+		// save to cache
+		err = saveToCache(ctx, shortID, longURL, redisClient)
+		if err != nil {
+			Logger.Error("failed to save cold item to cache", err, "redis_host", redisClient.Options().Addr)
+			return longURL, ErrCacheSave
+		}
+	case status.Code(err) == codes.NotFound:
+		Logger.Error("short ID not found in database", err, "short_id", shortID)
+		return longURL, ErrStorageMiss
+	case err != nil:
+		return longURL, err
+	}
+	return longURL, nil
 }

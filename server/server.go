@@ -27,6 +27,8 @@ var (
 	Logger                   = slog.New(slog.NewJSONHandler(os.Stdout))
 	ErrRedisClientCreate     = errors.New("unable to create redis client")
 	ErrFirestoreClientCreate = errors.New("unable to create firestore client")
+	ErrCacheSave             = errors.New("failed to save data in cache")
+	ErrStorageMiss           = errors.New("data not found in storage")
 )
 
 // Server is a struct representing an instance of the url shortening web application

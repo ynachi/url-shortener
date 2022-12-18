@@ -1,13 +1,11 @@
 package server
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
 	"strings"
-
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
 // Home define a home handler function which respond to users hiting the home page
@@ -77,32 +75,26 @@ func (srv *Server) GetURL(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	shortID := r.URL.Query().Get("shortid")
-	longURL, err := getFromCache(srv.ctx, shortID, srv.redisClient)
-	if err == nil {
-		const msg = `"{message": Long url for short url %s is %s.}`
-		fmt.Fprintf(w, msg, shortID, longURL)
-		return
-	}
-	longURL, err = getFromStorage(srv.ctx, shortID, srv.firestoreClient)
-	switch {
-	case err == nil:
-		const msg = `"{message": Long url for short url %s is %s.}`
-		fmt.Fprintf(w, msg, shortID, longURL)
-		// save to cache
-		err = saveToCache(srv.ctx, shortID, longURL, srv.redisClient)
-		if err != nil {
+	longURL, err := decodeURL(srv.ctx, shortID, srv.redisClient, srv.firestoreClient)
+	if err != nil {
+		switch {
+		case errors.Is(err, ErrCacheSave):
+			// log the error but respond to the request as the answer is still valid
 			Logger.Error("failed to save cold item to cache", err, "redis_host", srv.redisAddr)
+			const msg = `"{message": Long url for short url %s is %s.}`
+			fmt.Fprintf(w, msg, shortID, longURL)
+		case errors.Is(err, ErrStorageMiss):
+			Logger.Error("item not found", err, "short_id", shortID)
+			http.Error(w, "Short URL not found", http.StatusNotFound)
+			return
+		default:
+			Logger.Error("internal error", err, "short_id", shortID)
+			http.Error(w, "Internal error", http.StatusInternalServerError)
+			return
 		}
-		return
-	case status.Code(err) == codes.NotFound:
-		Logger.Error("short url id not found", err, "short_url", shortID)
-		http.Error(w, "Short URL not found", http.StatusNotFound)
-		return
-	case err != nil:
-		Logger.Error("short url retrieval failed", err, "short_url", shortID)
-		msg := fmt.Sprintf("%s long url retrieval failed", shortID)
-		http.Error(w, msg, http.StatusInternalServerError)
-		return
+	} else {
+		const msg = `"{message": Long url for short url %s is %s.}`
+		fmt.Fprintf(w, msg, shortID, longURL)
 	}
 }
 
