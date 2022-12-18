@@ -5,18 +5,42 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"regexp"
 	"strings"
 )
 
-// Home define a home handler function which respond to users hiting the home page
-func (srv *Server) Home(w http.ResponseWriter, r *http.Request) {
-	// Check if the current request URL path exactly matches "/". If it doesn't, use
-	// the http.NotFound() function to send a 404 response to the client.
-	if r.URL.Path != "/" {
-		http.NotFound(w, r)
+// Redirect redirects a short url to the corresponding long url
+func (srv *Server) Redirect(w http.ResponseWriter, r *http.Request) {
+	// Check if the current request URL path exactly matches "/". If it does, return the
+	// home page.
+	reg, _ := regexp.Compile("^/[A-Za-z0-9]{0,8}$")
+	if r.URL.Path == "/" {
+		w.Write([]byte("Welcome to Yao's Cloud Native URL shortening App"))
+	} else if reg.MatchString(r.URL.Path) && len(r.URL.Query()) == 0 {
+		// url matches api_url/<shortID>, so try redirect
+		shortID := strings.TrimPrefix(r.URL.Path, "/")
+		longURL, err := decodeURL(srv.ctx, shortID, srv.redisClient, srv.firestoreClient)
+		if err != nil {
+			switch {
+			case errors.Is(err, ErrCacheSave):
+				//only log the error
+				Logger.Error("failed to save cold item to cache", err, "redis_host", srv.redisAddr)
+			case errors.Is(err, ErrStorageMiss):
+				Logger.Error("item not found", err, "short_id", shortID)
+				http.Error(w, "Short URL not found", http.StatusNotFound)
+				return
+			default:
+				Logger.Error("internal error", err, "short_id", shortID)
+				http.Error(w, "Internal error", http.StatusInternalServerError)
+				return
+			}
+		}
+		http.Redirect(w, r, longURL, http.StatusSeeOther)
+
+	} else {
+		http.Error(w, "Malformed query", http.StatusBadRequest)
 		return
 	}
-	w.Write([]byte("Welcome to Yao's Cloud Native URL shortening App"))
 }
 
 // CreateURL creates a shortened URL from a long URL
@@ -100,10 +124,5 @@ func (srv *Server) GetURL(w http.ResponseWriter, r *http.Request) {
 
 // GetURLs ViewURLs displays all shortened URLs matching some criteria
 func (srv *Server) GetURLs(w http.ResponseWriter, r *http.Request) {
-
-}
-
-// Redirect redirect redirect a long URL to a shortened URL
-func (srv *Server) Redirect(w http.ResponseWriter, r *http.Request) {
 
 }
