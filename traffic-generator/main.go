@@ -1,11 +1,11 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"io"
 	"net/http"
 	"os"
-	"strconv"
 	"sync"
 )
 
@@ -43,18 +43,19 @@ func worker(url string, ch <-chan int, wg *sync.WaitGroup) {
 // arg 1: base url, arg 2: number of requests, arg 3: number of workers
 func main() {
 	var wg sync.WaitGroup
-	urlBase := os.Args[1]
-	numReq, _ := strconv.Atoi(os.Args[2])
-	numWorkers, _ := strconv.Atoi(os.Args[3])
-	wg.Add(numWorkers)
-	jobs := make(chan int, numReq)
+	urlBase := flag.String("api", "https://www.golang.com", "api endpoint")
+	numReq := flag.Int("requests", 2000, "total number of requests to issue")
+	numWorkers := flag.Int("workers", 50, "number of concurrent workers")
+	flag.Parse()
+	wg.Add(*numWorkers)
+	jobs := make(chan int, *numReq)
 
 	// create workers
-	for i := 0; i < numWorkers; i++ {
-		go worker(urlBase, jobs, &wg)
+	for i := 0; i < *numWorkers; i++ {
+		go worker(*urlBase, jobs, &wg)
 	}
 	// fill working queue (provide jobs)
-	for i := 0; i < numReq; i++ {
+	for i := 0; i < *numReq; i++ {
 		jobs <- i
 	}
 	close(jobs)
