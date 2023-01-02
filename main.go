@@ -30,12 +30,8 @@ func main() {
 
 	// registering the handlers
 	srv.Mux.HandleFunc("/", srv.Redirect)
-	srv.Mux.HandleFunc("/url/create", srv.CreateURL)
-	srv.Mux.HandleFunc("/url/delete", srv.DeleteURL)
-	srv.Mux.HandleFunc("/url/update", srv.UpdateURL)
-	srv.Mux.HandleFunc("/url/get", srv.GetURL)
-	srv.Mux.HandleFunc("/urls/get", srv.GetURLs)
-
+	srv.Mux.HandleFunc("/urls/", srv.URLs)
+	
 	server.Logger.Info("starting server", "port", srv.Port)
 	err = srv.Start()
 	if err != nil {

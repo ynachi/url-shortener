@@ -9,6 +9,26 @@ import (
 	"strings"
 )
 
+// URLs will is the entrypoint handler for the url resource.
+func (srv *Server) URLs(w http.ResponseWriter, r *http.Request) {
+	if r.URL.Path == "/urls/" {
+		switch r.Method {
+		case http.MethodPost:
+			srv.CreateURL(w, r)
+		case http.MethodGet:
+			srv.GetURLs(w, r)
+		case http.MethodDelete:
+			srv.DeleteURL(w, r)
+		case http.MethodPatch:
+			srv.UpdateURL(w, r)
+		default:
+			http.Error(w, "Allowed methods are POST, GET, DELETE and PATCH", http.StatusMethodNotAllowed)
+			return
+
+		}
+	}
+}
+
 // Redirect redirects a short url to the corresponding long url
 func (srv *Server) Redirect(w http.ResponseWriter, r *http.Request) {
 	// Check if the current request URL path exactly matches "/". If it does, return the
@@ -90,8 +110,9 @@ func (srv *Server) UpdateURL(w http.ResponseWriter, r *http.Request) {
 
 }
 
-// GetURL ViewURL displays information about a shortened URL, like the long URL it points to
-func (srv *Server) GetURL(w http.ResponseWriter, r *http.Request) {
+// GetURLs displays information about a shortened URL, like the long URL it points to
+// can get one or more urls
+func (srv *Server) GetURLs(w http.ResponseWriter, r *http.Request) {
 	// Only GET method is accepted to create resources
 	if r.Method != http.MethodGet {
 		w.Header().Set("Allow", http.MethodGet)
@@ -120,9 +141,4 @@ func (srv *Server) GetURL(w http.ResponseWriter, r *http.Request) {
 		const msg = `"{message": Long url for short url %s is %s.}`
 		fmt.Fprintf(w, msg, shortID, longURL)
 	}
-}
-
-// GetURLs ViewURLs displays all shortened URLs matching some criteria
-func (srv *Server) GetURLs(w http.ResponseWriter, r *http.Request) {
-
 }
